@@ -70,15 +70,17 @@ public class ReduceSideDriver {
 				throws IOException, InterruptedException {
 			boolean print = false;
 			int count = 0;
+			int wins=0;
 			for (IntWritable v : values) {
 				count += v.get();
 				if (v.get() != 10) {
 					count -= v.get();
+					wins=v.get();
 					print = true;
 				}
 			}
 			if (print) {
-				context.write(_key, new IntWritable(count / 10));
+				context.write(new Text(_key.toString()+" win: "+wins+" times, "+"boots count:  "), new IntWritable(count / 10));
 			}
 		}
 
