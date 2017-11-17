@@ -2,7 +2,10 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>mapreduce</groupId>
   <artifactId>mapreduce</artifactId>
-  <version>0.0.1-SNAPSHOT</version> 
+  <version>0.0.1-SNAPSHOT</version>
+  
+  <name>mapreduce</name>
+	<url>http://maven.apache.org</url> 
   <properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
