@@ -1,6 +1,8 @@
 package co.football.joins;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.HashMap;
@@ -9,9 +11,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -49,23 +50,39 @@ public class MapSideDriver {
 	public static class MapSideMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
 		private static Map<String, String> map = new HashMap<>();
 		private static Pattern p = Pattern.compile("^[A-Z].*$");
+		
+		void initialize() throws IOException {
+			File companyDataFile = new File("compions.csv");
+			BufferedReader in = null;
+			try {
+				in = new BufferedReader(new InputStreamReader(new FileInputStream(companyDataFile)));
+				String s;
+				while ((s = in.readLine()) != null) {
+					map.put(s.split(",")[0], s.split(",")[1]);
+				}
+
+			} finally {
+				IOUtils.closeStream(in);
+			}
+
+		}
 
 		@Override
 		protected void setup(Mapper<LongWritable, Text, Text, IntWritable>.Context context)
 				throws IOException, InterruptedException {
 			super.setup(context);
-			Path[] files = Job.getInstance(context.getConfiguration()).getLocalCacheFiles();
-
-			FileSystem system = FileSystem.newInstance(context.getConfiguration());
-			for (Path f : files) {
-				FSDataInputStream open = system.open(f);
-				BufferedReader b = new BufferedReader(new InputStreamReader(open));
-				String s = null;
-				while ((s = b.readLine()) != null) {
-					map.put(s.split(",")[0], s.split(",")[1]);
-				}
-				b.close();
-			}
+//			Path[] files = Job.getInstance(context.getConfiguration()).getLocalCacheFiles();
+//
+//			FileSystem system = FileSystem.newInstance(context.getConfiguration());
+//			for (Path f : files) {
+//				FSDataInputStream open = system.open(f);
+//				BufferedReader b = new BufferedReader(new InputStreamReader(open));
+//				String s = null;
+//				while ((s = b.readLine()) != null) {
+//					map.put(s.split(",")[0], s.split(",")[1]);
+//				}
+//				b.close();
+//			}
 
 		}
 
