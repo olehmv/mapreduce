@@ -1,0 +1,291 @@
+hive> dfs -ls /apps/hive/warehouse;
+Found 4 items
+drwxrwxrwx   - hive hadoop          0 2017-11-10 14:59 /apps/hive/warehouse/foodmart.db
+drwxrwxrwx   - hive hadoop          0 2017-11-10 15:00 /apps/hive/warehouse/sample_07
+drwxrwxrwx   - hive hadoop          0 2017-11-10 15:00 /apps/hive/warehouse/sample_08
+drwxrwxrwx   - hive hadoop          0 2017-11-10 14:53 /apps/hive/warehouse/xademo.db
+hive> create database if not exists football;
+OK
+Time taken: 0.097 seconds
+hive> dfs -ls /apps/hive/warehouse;
+Found 5 items
+drwxrwxrwx   - hive hadoop          0 2017-11-10 14:59 /apps/hive/warehouse/foodmart.db
+drwxrwxrwx   - root hadoop          0 2017-11-22 08:24 /apps/hive/warehouse/football.db
+drwxrwxrwx   - hive hadoop          0 2017-11-10 15:00 /apps/hive/warehouse/sample_07
+drwxrwxrwx   - hive hadoop          0 2017-11-10 15:00 /apps/hive/warehouse/sample_08
+drwxrwxrwx   - hive hadoop          0 2017-11-10 14:53 /apps/hive/warehouse/xademo.db
+hive> use football;
+OK
+Time taken: 0.319 seconds
+hive> create table champions_in(country string,wins string)
+    > row format delimited fields terminated by ','
+    > stored as textfile;
+OK
+Time taken: 0.808 seconds
+hive> dfs -ls /apps/hive/warehouse/football.db;
+Found 1 items
+drwxrwxrwx   - root hadoop          0 2017-11-22 08:57 /apps/hive/warehouse/football.db/champions_in
+hive> load data local inpath '/champions.csv' into table champions_in;
+Loading data to table football.champions_in
+Table football.champions_in stats: [numFiles=1, numRows=0, totalSize=71, rawDataSize=0]
+OK
+Time taken: 0.821 seconds
+hive> dfs -ls /apps/hive/warehouse/football.db/champions_in;
+Found 1 items
+-rwxrwxrwx   1 root hadoop         71 2017-11-22 09:04 /apps/hive/warehouse/football.db/champions_in/champions.csv
+hive> select * from champions_in;
+OK
+Brazil  5
+Germany 4
+Italy   4
+Argentina       2
+Uruguay 2
+France  1
+Spain   1
+Time taken: 0.141 seconds, Fetched: 7 row(s)
+hive> create table epldata_in(name string,club string,age string,position string,
+    > position_cat string,market_value string,page_views string,fpl_value string,
+    > fpl_sel string,fpl_points string,region string,nationality string,new_foreign string,
+    > age_cat string,club_id string,big_club string,new_signing string
+    > )row format delimited fields terminated by ',' stored as textfile;
+OK
+Time taken: 0.292 seconds
+hive> dfs -ls /apps/hive/warehouse/football.db;
+Found 2 items
+drwxrwxrwx   - root hadoop          0 2017-11-22 09:04 /apps/hive/warehouse/football.db/champions_in
+drwxrwxrwx   - root hadoop          0 2017-11-22 10:09 /apps/hive/warehouse/football.db/epldata_in
+hive> load data local inpath '/epldata_final.csv' into table epldata_in;
+Loading data to table football.epldata_in
+Table football.epldata_in stats: [numFiles=1, numRows=0, totalSize=34635, rawDataSize=0]
+OK
+Time taken: 0.841 seconds
+hive> select * from epldata_in limit 5;
+OK
+name    club    age     position        position_cat    market_value    page_views      fpl_value       fpl_sel fpl_points      region  nationality     new_foreign     age_catclub_id big_club        new_signing
+Alexis Sanchez  Arsenal 28      LW      1       65      4329    12      17.10%  264     3       Chile   0       4       1       1       0
+Mesut Ozil      Arsenal 28      AM      1       50      4395    9.5     5.60%   167     2       Germany 0       4       1       1       0
+Petr Cech       Arsenal 35      GK      4       7       1529    5.5     5.90%   134     2       Czech Republic  0       6       1       1       0
+Theo Walcott    Arsenal 28      RW      1       20      2393    7.5     1.50%   122     1       England 0       4       1       1       0
+Time taken: 0.324 seconds, Fetched: 5 row(s)
+hive> select champions_in.country,count(champions_in.country)
+    > from champions_in join epldata_in on champions_in.country=epldata_in.nationality
+    > group by(country);
+Query ID = root_20171122114606_42e26e7b-5d36-4dc2-b4f0-5a69701f282f
+Total jobs = 1
+Launching Job 1 out of 1
+Tez session was closed. Reopening...
+Session re-established.
+Status: Running (Executing on YARN cluster with App id application_1511336116286_0022)
+
+--------------------------------------------------------------------------------
+        VERTICES      STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED
+--------------------------------------------------------------------------------
+Map 1 ..........   SUCCEEDED      1          1        0        0       0       0
+Map 2 ..........   SUCCEEDED      1          1        0        0       0       0
+Reducer 3 ......   SUCCEEDED      1          1        0        0       0       0
+--------------------------------------------------------------------------------
+VERTICES: 03/03  [==========================>>] 100%  ELAPSED TIME: 5.55 s     
+--------------------------------------------------------------------------------
+OK
+Argentina       17
+Brazil  12
+France  25
+Germany 16
+Italy   4
+Spain   28
+Uruguay 1
+Time taken: 10.768 seconds, Fetched: 7 row(s)
+hive> select /*+ MAPJOIN(epldata_in) */champions_in.country,count(champions_in.country)
+    > from champions_in join epldata_in on champions_in.country=epldata_in.nationality
+    > group by(country);
+Query ID = root_20171122115217_cec4d2e8-1d94-49a7-9d5b-11633f942139
+Total jobs = 1
+Launching Job 1 out of 1
+Status: Running (Executing on YARN cluster with App id application_1511336116286_0025)
+
+--------------------------------------------------------------------------------
+        VERTICES      STATUS  TOTAL  COMPLETED  RUNNING  PENDING  FAILED  KILLED
+--------------------------------------------------------------------------------
+Map 1 ..........   SUCCEEDED      1          1        0        0       0       0
+Map 2 ..........   SUCCEEDED      1          1        0        0       0       0
+Reducer 3 ......   SUCCEEDED      1          1        0        0       0       0
+--------------------------------------------------------------------------------
+VERTICES: 03/03  [==========================>>] 100%  ELAPSED TIME: 5.59 s     
+--------------------------------------------------------------------------------
+OK
+Argentina       17
+Brazil  12
+France  25
+Germany 16
+Italy   4
+Spain   28
+Uruguay 1
+Time taken: 8.058 seconds, Fetched: 7 row(s)
+hive> exit;
+[root@sandbox-hdp /]# cd /etc/hive/conf
+[root@sandbox-hdp conf]# ls
+atlas-application.properties       conf.server                hive-env.sh           hive-exec-log4j.properties  hive-site.xml    mapred-site.xml
+beeline-log4j.properties.template  hive-default.xml.template  hive-env.sh.template  hive-log4j.properties       ivysettings.xml  parquet-logging.properties
+[root@sandbox-hdp conf]# vi hive-site.xml 
+[root@sandbox-hdp conf]# mysql -u hive
+mysql> exit;
+[root@sandbox-hdp conf]# mysql -u root -p hadoop
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| hive               |
+| mysql              |
+| performance_schema |
+| ranger             |
++--------------------+
+5 rows in set (0.00 sec)
+mysql> use hive;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> show tables;
+..................
+mysql> select * from TBLS;
++--------+-------------+-------+------------------+-------+-----------+-------+---------------------+----------------+--------------------+--------------------+
+| TBL_ID | CREATE_TIME | DB_ID | LAST_ACCESS_TIME | OWNER | RETENTION | SD_ID | TBL_NAME            | TBL_TYPE       | VIEW_EXPANDED_TEXT | VIEW_ORIGINAL_TEXT |
++--------+-------------+-------+------------------+-------+-----------+-------+---------------------+----------------+--------------------+--------------------+
+|      1 |  1510325620 |     6 |                0 | hive  |         0 |     1 | call_detail_records | MANAGED_TABLE  | NULL               | NULL               |
+|      2 |  1510325621 |     6 |                0 | hive  |         0 |     2 | recharge_details    | MANAGED_TABLE  | NULL               | NULL               |
+|      3 |  1510325622 |     6 |                0 | hive  |         0 |     3 | customer_details    | MANAGED_TABLE  | NULL               | NULL               |
+|      4 |  1510326002 |     1 |                0 | hive  |         0 |     4 | sample_07           | MANAGED_TABLE  | NULL               | NULL               |
+|      5 |  1510326012 |     1 |                0 | hive  |         0 |     5 | sample_08           | MANAGED_TABLE  | NULL               | NULL               |
+|      6 |  1510325983 |     2 |                0 | hive  |         0 |     6 | sales_fact_dec_1998 | EXTERNAL_TABLE | NULL               | NULL               |
+|      7 |  1510325983 |     2 |                0 | hive  |         0 |     7 | inventory_fact_1998 | EXTERNAL_TABLE | NULL               | NULL               |
+|      8 |  1510325984 |     2 |                0 | hive  |         0 |     8 | customer            | EXTERNAL_TABLE | NULL               | NULL               |
+|      9 |  1510325984 |     2 |                0 | hive  |         0 |     9 | product             | EXTERNAL_TABLE | NULL               | NULL               |
+|     10 |  1510325985 |     2 |                0 | hive  |         0 |    10 | store               | EXTERNAL_TABLE | NULL               | NULL               |
+|     11 |  1511341066 |    12 |                0 | root  |         0 |    11 | champions_in        | MANAGED_TABLE  | NULL               | NULL               |
+|     13 |  1511345397 |    12 |                0 | root  |         0 |    13 | epldata_in          | MANAGED_TABLE  | NULL               | NULL               |
++--------+-------------+-------+------------------+-------+-----------+-------+---------------------+----------------+--------------------+--------------------+
+12 rows in set (0.01 sec)
+mysql> exit;
+Bye
+[root@sandbox-hdp conf]# find / -name "*hive*.jar"
+/usr/hdp/2.5.0.0-1245/ranger-admin/ews/webapp/WEB-INF/classes/ranger-plugins/hive/hive-service-1.2.1000.2.5.0.0-1245.jar
+/usr/hdp/2.5.0.0-1245/ranger-admin/ews/webapp/WEB-INF/classes/ranger-plugins/hive/hive-common-1.2.1000.2.5.0.0-1245.jar
+/usr/hdp/2.5.0.0-1245/ranger-admin/ews/webapp/WEB-INF/classes/ranger-plugins/hive/hive-jdbc-1.2.1000.2.5.0.0-1245.jar
+/usr/hdp/2.5.0.0-1245/ranger-admin/ews/webapp/WEB-INF/classes/ranger-plugins/hive/ranger-hive-plugin-0.6.0.2.5.0.0-1245.jar
+/usr/hdp/2.5.0.0-1245/ranger-admin/ews/webapp/WEB-INF/classes/ranger-plugins/hive/hive-exec-1.2.1000.2.5.0.0-1245.jar
+/usr/hdp/2.5.0.0-1245/ranger-admin/ews/webapp/WEB-INF/classes/ranger-plugins/hive/hive-metastore-1.2.1000.2.5.0.0-1245.jar
+/usr/hdp/2.5.0.0-1245/ranger-admin/ews/webapp/WEB-INF/classes/ranger-plugins/hive/hive-jdbc-1.2.1000.2.5.0.0-1245-standalone.jar
+...................................................
+root@sandbox-hdp conf]# hive
+hive> set;
+....................
+mapreduce.job.reduces=-1
+mapreduce.reduce.speculative=true
+nfs.allow.insecure.ports=true
+...................
+hive> set mapreduce.job.reduces;
+mapreduce.job.reduces=-1
+hive> set mapreduce.job.reduces=2;
+hive> set mapreduce.job.reduces;
+mapreduce.job.reduces=2
+hive> exit;
+[root@sandbox-hdp ~]# cd ~
+[root@sandbox-hdp ~]# pwd
+/root
+[root@sandbox-hdp ~]# vi .hiverc
+set mapreduce.job.reduces=2
+:wq
+[root@sandbox-hdp ~]# hive
+hive> set mapreduce.job.reduces;
+mapreduce.job.reduces=2
+hive> exit;
+[root@sandbox-hdp ~]# rm .hiverc 
+[root@sandbox-hdp ~]# hive
+hive>  set mapreduce.job.reduces;
+mapreduce.job.reduces=-1
+hive> exit;
+[root@sandbox-hdp ~]# hive -e "use football; select * from champions_in;
+OK
+Time taken: 2.282 seconds
+OK
+Brazil  5
+Germany 4
+Italy   4
+Argentina       2
+Uruguay 2
+France  1
+Spain   1
+Time taken: 0.625 seconds, Fetched: 7 row(s)
+[root@sandbox-hdp ~]#
+[root@sandbox-hdp ~]# hive -f --help
+[root@sandbox-hdp ~]# cd /tmp/root
+[root@sandbox-hdp root]# ls -la
+total 656
+drwxr-xr-x 2 root root   4096 Nov 22 13:21 .
+drwxrwxrwt 1 root root   4096 Nov 22 13:23 ..
+-rw-r--r-- 1 root root  87849 Nov 22 10:26 atlas_hook_failed_messages.log
+-rw-r--r-- 1 root root 564596 Nov 22 13:21 hive.log
+[root@sandbox-hdp root]# cat hive.log | grep MAPJOIN
+2017-11-22 10:43:27,958 INFO  [main]: parse.ParseDriver (ParseDriver.java:parse(190)) - Parsing command: select /*+MAPJOIN(epldata_in)*/ champions_in.country champions.wins join epldata_in on champions_in.country=epldata_in.nationality
+2017-11-22 10:44:14,058 INFO  [main]: parse.ParseDriver (ParseDriver.java:parse(190)) - Parsing command: select /*+MAPJOIN(epldata_in)*/ champions_in.country champions_in.wins join epldata_in on champions_in.country=epldata_in.nationality
+2017-11-22 10:44:56,644 INFO  [main]: parse.ParseDriver (ParseDriver.java:parse(190)) - Parsing command: select /*+MAPJOIN(epldata_in)*/ champions_in.country, champions_in.wins join epldata_in on champions_in.country=epldata_in.nationality
+2017-11-22 11:05:50,932 INFO  [main]: parse.ParseDriver (ParseDriver.java:parse(190)) - Parsing command: select /*+MAPJOIN(epldata_in)*/ champions_in.country, champions_in.wins
+[root@sandbox-hdp root]# cd /etc/hive/conf
+[root@sandbox-hdp conf]# ls 
+atlas-application.properties       conf.server                hive-env.sh           hive-exec-log4j.properties  hive-site.xml    mapred-site.xml
+beeline-log4j.properties.template  hive-default.xml.template  hive-env.sh.template  hive-log4j.properties       ivysettings.xml  parquet-logging.properties
+[root@sandbox-hdp conf]# vi hive-log4j.properties
+[root@sandbox-hdp conf]# hive
+hive> create external table champions_ex(country string, wins string)
+    > row format delimited fields terminated by ','
+    > stored as textfile;
+OK
+Time taken: 0.462 seconds
+hive> describe formatted champions_ex;
+OK
+# col_name              data_type               comment             
+                 
+country                 string                                      
+wins                    string                                      
+                 
+# Detailed Table Information             
+Database:               football                 
+Owner:                  root                     
+CreateTime:             Wed Nov 22 15:02:14 UTC 2017     
+LastAccessTime:         UNKNOWN                  
+Protect Mode:           None                     
+Retention:              0                        
+Location:               hdfs://sandbox-hdp.hortonworks.com:8020/apps/hive/warehouse/football.db/champions_ex     
+Table Type:             EXTERNAL_TABLE           
+Table Parameters:                
+        EXTERNAL                TRUE                
+        transient_lastDdlTime   1511362934          
+                 
+# Storage Information            
+SerDe Library:          org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe       
+InputFormat:            org.apache.hadoop.mapred.TextInputFormat         
+OutputFormat:           org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat       
+Compressed:             No                       
+Num Buckets:            -1                       
+Bucket Columns:         []                       
+Sort Columns:           []                       
+Storage Desc Params:             
+        field.delim             ,                   
+        serialization.format    ,                   
+Time taken: 0.481 seconds, Fetched: 29 row(s)
+hive> load data inpath '/user/root/champions.csv' into table champions_ex;
+Loading data to table football.champions_ex
+Table football.champions_ex stats: [numFiles=1, totalSize=71]
+OK
+Time taken: 0.777 seconds
+hive> select * from champions_ex;
+OK
+Brazil  5
+Germany 4
+Italy   4
+Argentina       2
+Uruguay 2
+France  1
+Spain   1
+Time taken: 0.137 seconds, Fetched: 7 row(s)
